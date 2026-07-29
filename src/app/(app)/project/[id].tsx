@@ -86,6 +86,7 @@ export default function ProjectDetailScreen() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [productionError, setProductionError] = useState('');
 
   const [starting, setStarting] = useState(false);
   const [polling, setPolling] = useState(false);
@@ -209,6 +210,7 @@ export default function ProjectDetailScreen() {
     if (!id || !project) return;
     setStarting(true);
     try {
+      setProductionError('');
       await api.startProject(id);
       // Start polling after queuing
       startPolling();
@@ -216,7 +218,7 @@ export default function ProjectDetailScreen() {
       setTasksLoading(true);
       fetchTasks();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to start production.');
+      setProductionError(e instanceof Error ? e.message : 'Failed to start production.');
     } finally {
       setStarting(false);
     }
@@ -452,6 +454,10 @@ export default function ProjectDetailScreen() {
               </Text>
             )}
           </TouchableOpacity>
+
+          {productionError ? (
+            <Text style={styles.productionError}>{productionError}</Text>
+          ) : null}
 
           {polling && (
             <View style={styles.pollingBanner}>
@@ -837,6 +843,20 @@ const styles = StyleSheet.create({
     color: C.cyan,
     fontSize: 12,
     fontWeight: '500',
+  },
+
+  // Production error
+  productionError: {
+    color: C.danger,
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: 'rgba(239,68,68,0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.25)',
   },
 
   // Inline loading
