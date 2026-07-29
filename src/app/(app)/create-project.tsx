@@ -39,7 +39,7 @@ export default function CreateProjectScreen() {
   const [title, setTitle] = useState('');
   const [audience, setAudience] = useState('');
   const [purpose, setPurpose] = useState('');
-  const [chapterCount, setChapterCount] = useState('1');
+  const [chapterCount, setChapterCount] = useState('3');
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -83,8 +83,8 @@ export default function CreateProjectScreen() {
     }
 
     const count = parseInt(chapterCount, 10);
-    if (isNaN(count) || count < 1) {
-      setChapterError('Chapter count must be at least 1.');
+    if (isNaN(count) || count < 3) {
+      setChapterError('Chapter count must be at least 3.');
       valid = false;
     } else {
       setChapterError('');
