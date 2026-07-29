@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "PromptIt",
+    "slug": "promptit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "promptit",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "backgroundColor": "#080a0f",
+    "primaryColor": "#43f5d5",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080a0f",
+      "dark": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#080a0f"
+      }
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.promptit.app",
+      "deploymentTarget": "15.0",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#080a0f"
+      },
+      "package": "com.promptit.app",
+      "versionCode": 1,
+      "minSdkVersion": 34
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "backendUrl": "https://prompt-it-web.onrender.com"
+    }
+  }
+}
