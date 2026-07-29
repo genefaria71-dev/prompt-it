@@ -79,6 +79,12 @@ async function request<T = unknown>(
     headers,
   });
 
+  // On 401, clear tokens immediately so the app redirects to login
+  if (response.status === 401) {
+    await clearTokens();
+    throw new Error('Session expired. Please sign in again.');
+  }
+
   if (!response.ok) {
     let errorMessage = `Request failed with status ${response.status}`;
     try {
@@ -357,3 +363,9 @@ export async function verifyEmail(token: string): Promise<void> {
 // ── Token-only exports (for AuthContext bootstrap) ──────────────────
 
 export { getToken, setToken, clearTokens };
+
+// ── Auth error detection ────────────────────────────────────────────
+
+export function isAuthError(error: unknown): boolean {
+  return error instanceof Error && error.message === 'Session expired. Please sign in again.';
+}

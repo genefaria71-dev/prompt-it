@@ -51,6 +51,8 @@ export default function CreateProjectScreen() {
 
   const [titleError, setTitleError] = useState('');
   const [chapterError, setChapterError] = useState('');
+  const [audienceError, setAudienceError] = useState('');
+  const [purposeError, setPurposeError] = useState('');
 
   // ── Fetch workspaces on mount ────────────────────────────────────
 
@@ -88,6 +90,20 @@ export default function CreateProjectScreen() {
       valid = false;
     } else {
       setChapterError('');
+    }
+
+    if (!audience.trim()) {
+      setAudienceError('Target audience is required.');
+      valid = false;
+    } else {
+      setAudienceError('');
+    }
+
+    if (!purpose.trim()) {
+      setPurposeError('Purpose is required.');
+      valid = false;
+    } else {
+      setPurposeError('');
     }
 
     return valid;
@@ -170,28 +186,36 @@ export default function CreateProjectScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Target Audience</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, audienceError ? styles.inputError : null]}
               value={audience}
-              onChangeText={setAudience}
+              onChangeText={(t) => {
+                setAudience(t);
+                if (audienceError) setAudienceError('');
+              }}
               placeholder="e.g. Developers, Marketers, General"
               placeholderTextColor={C.muted + '80'}
               autoCapitalize="sentences"
               editable={!submitting}
             />
+            {audienceError ? <Text style={styles.fieldError}>{audienceError}</Text> : null}
           </View>
 
           {/* ── PURPOSE ──────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Purpose</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, purposeError ? styles.inputError : null]}
               value={purpose}
-              onChangeText={setPurpose}
+              onChangeText={(t) => {
+                setPurpose(t);
+                if (purposeError) setPurposeError('');
+              }}
               placeholder="e.g. Generate blog posts, documentation"
               placeholderTextColor={C.muted + '80'}
               autoCapitalize="sentences"
               editable={!submitting}
             />
+            {purposeError ? <Text style={styles.fieldError}>{purposeError}</Text> : null}
           </View>
 
           {/* ── CHAPTER COUNT ───────────────────────────────────── */}

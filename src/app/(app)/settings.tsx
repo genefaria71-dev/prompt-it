@@ -92,6 +92,12 @@ export default function SettingsScreen() {
   // ── Sign Out ────────────────────────────────────────────────────
   const [loggingOut, setLoggingOut] = useState(false);
 
+  // ── Billing actions ──────────────────────────────────────────────
+  const [upgrading, setUpgrading] = useState(false);
+  const [managing, setManaging] = useState(false);
+  const [upgradeError, setUpgradeError] = useState('');
+  const [manageError, setManageError] = useState('');
+
   // ── Fetchers ────────────────────────────────────────────────────
 
   const fetchBillingStatus = useCallback(async () => {
@@ -189,20 +195,28 @@ export default function SettingsScreen() {
   }
 
   async function handleUpgrade() {
+    setUpgradeError('');
+    setUpgrading(true);
     try {
       const { url } = await api.startCheckout('pro');
       Linking.openURL(url);
     } catch (e: unknown) {
-      // silently fail — user can retry
+      setUpgradeError(e instanceof Error ? e.message : 'Failed to open checkout.');
+    } finally {
+      setUpgrading(false);
     }
   }
 
   async function handleManageBilling() {
+    setManageError('');
+    setManaging(true);
     try {
       const { url } = await api.openBillingPortal();
       Linking.openURL(url);
     } catch (e: unknown) {
-      // silently fail — user can retry
+      setManageError(e instanceof Error ? e.message : 'Failed to open billing portal.');
+    } finally {
+      setManaging(false);
     }
   }
 
@@ -412,20 +426,37 @@ export default function SettingsScreen() {
           <View style={styles.buttonGroup}>
             {planLabel === 'FREE' && (
               <TouchableOpacity
-                style={styles.upgradeBtn}
+                style={[styles.upgradeBtn, upgrading && styles.buttonDisabled]}
                 onPress={handleUpgrade}
+                disabled={upgrading}
                 activeOpacity={0.7}
               >
-                <Text style={styles.upgradeBtnText}>Upgrade Plan</Text>
+                {upgrading ? (
+                  <ActivityIndicator size="small" color={C.cyan} />
+                ) : (
+                  <Text style={styles.upgradeBtnText}>Upgrade Plan</Text>
+                )}
               </TouchableOpacity>
             )}
+            {upgradeError ? (
+              <Text style={styles.billingErrorText}>{upgradeError}</Text>
+            ) : null}
+
             <TouchableOpacity
-              style={styles.manageBillingBtn}
+              style={[styles.manageBillingBtn, managing && styles.buttonDisabled]}
               onPress={handleManageBilling}
+              disabled={managing}
               activeOpacity={0.7}
             >
-              <Text style={styles.manageBillingBtnText}>Manage Billing</Text>
+              {managing ? (
+                <ActivityIndicator size="small" color={C.muted} />
+              ) : (
+                <Text style={styles.manageBillingBtnText}>Manage Billing</Text>
+              )}
             </TouchableOpacity>
+            {manageError ? (
+              <Text style={styles.billingErrorText}>{manageError}</Text>
+            ) : null}
           </View>
         </View>
 
@@ -882,6 +913,14 @@ const styles = StyleSheet.create({
     color: C.muted,
     fontSize: 14,
     fontWeight: '500',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  billingErrorText: {
+    color: C.danger,
+    fontSize: 12,
+    textAlign: 'center',
   },
 
   // Section loading/error

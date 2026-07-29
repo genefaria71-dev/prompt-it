@@ -232,16 +232,36 @@ export default function ProjectDetailScreen() {
 
   // ── Export handlers ───────────────────────────────────────────────
 
-  function handleExportDocx() {
-    Linking.openURL(
-      `https://prompt-it-web.onrender.com/api/projects/${id}/export/docx`,
-    );
+  const [exportingDocx, setExportingDocx] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState('');
+
+  async function handleExportDocx() {
+    setExportError('');
+    setExportingDocx(true);
+    try {
+      const token = await api.getToken();
+      const url = `https://prompt-it-web.onrender.com/api/projects/${id}/export/docx?token=${encodeURIComponent(token ?? '')}`;
+      await Linking.openURL(url);
+    } catch (e: unknown) {
+      setExportError(e instanceof Error ? e.message : 'Failed to export DOCX.');
+    } finally {
+      setExportingDocx(false);
+    }
   }
 
-  function handleExportPdf() {
-    Linking.openURL(
-      `https://prompt-it-web.onrender.com/api/projects/${id}/export/pdf`,
-    );
+  async function handleExportPdf() {
+    setExportError('');
+    setExportingPdf(true);
+    try {
+      const token = await api.getToken();
+      const url = `https://prompt-it-web.onrender.com/api/projects/${id}/export/pdf?token=${encodeURIComponent(token ?? '')}`;
+      await Linking.openURL(url);
+    } catch (e: unknown) {
+      setExportError(e instanceof Error ? e.message : 'Failed to export PDF.');
+    } finally {
+      setExportingPdf(false);
+    }
   }
 
   // ── Derived values ────────────────────────────────────────────────
@@ -558,22 +578,40 @@ export default function ProjectDetailScreen() {
             <Text style={styles.sectionTitle}>Exports</Text>
 
             <TouchableOpacity
-              style={styles.exportButton}
+              style={[styles.exportButton, exportingDocx && styles.exportButtonDisabled]}
               onPress={handleExportDocx}
               activeOpacity={0.7}
+              disabled={exportingDocx}
             >
-              <Text style={styles.exportIcon}>📄</Text>
-              <Text style={styles.exportText}>Download DOCX</Text>
+              {exportingDocx ? (
+                <ActivityIndicator size="small" color={C.cyan} />
+              ) : (
+                <Text style={styles.exportIcon}>📄</Text>
+              )}
+              <Text style={styles.exportText}>
+                {exportingDocx ? 'Downloading…' : 'Download DOCX'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.exportButton}
+              style={[styles.exportButton, exportingPdf && styles.exportButtonDisabled]}
               onPress={handleExportPdf}
               activeOpacity={0.7}
+              disabled={exportingPdf}
             >
-              <Text style={styles.exportIcon}>📑</Text>
-              <Text style={styles.exportText}>Download PDF</Text>
+              {exportingPdf ? (
+                <ActivityIndicator size="small" color={C.cyan} />
+              ) : (
+                <Text style={styles.exportIcon}>📑</Text>
+              )}
+              <Text style={styles.exportText}>
+                {exportingPdf ? 'Downloading…' : 'Download PDF'}
+              </Text>
             </TouchableOpacity>
+
+            {exportError ? (
+              <Text style={styles.exportErrorText}>{exportError}</Text>
+            ) : null}
           </View>
         )}
 
@@ -920,6 +958,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
+  exportButtonDisabled: {
+    opacity: 0.6,
+  },
   exportIcon: {
     fontSize: 18,
     marginRight: 12,
@@ -928,5 +969,11 @@ const styles = StyleSheet.create({
     color: C.text,
     fontSize: 15,
     fontWeight: '600',
+  },
+  exportErrorText: {
+    color: C.danger,
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
