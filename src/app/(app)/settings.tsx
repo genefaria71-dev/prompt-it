@@ -195,16 +195,10 @@ export default function SettingsScreen() {
   }
 
   async function handleUpgrade() {
-    setUpgradeError('');
     setUpgrading(true);
-    try {
-      const { url } = await api.startCheckout('pro');
-      Linking.openURL(url);
-    } catch (e: unknown) {
-      setUpgradeError(e instanceof Error ? e.message : 'Failed to open checkout.');
-    } finally {
-      setUpgrading(false);
-    }
+    // Open Stripe payment link directly
+    await Linking.openURL('https://buy.stripe.com/6oU3cv8AUeRsb7aA8CU6AM00');
+    setUpgrading(false);
   }
 
   async function handleManageBilling() {
