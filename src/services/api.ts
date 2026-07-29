@@ -82,9 +82,18 @@ async function request<T = unknown>(
   if (!response.ok) {
     let errorMessage = `Request failed with status ${response.status}`;
     try {
-      const errorBody: ApiError = await response.json();
+      const errorBody = await response.json();
       if (errorBody.detail) {
-        errorMessage = errorBody.detail;
+        // detail can be a string or an array of validation errors
+        if (Array.isArray(errorBody.detail)) {
+          errorMessage = errorBody.detail
+            .map((e: { msg?: string; loc?: string[] }) =>
+              e.msg || (e.loc ? `${e.loc.join('.')}: error` : 'Validation error'),
+            )
+            .join('\n');
+        } else {
+          errorMessage = String(errorBody.detail);
+        }
       }
     } catch {
       // ignore — use default message
@@ -173,6 +182,8 @@ export async function getProject(id: string): Promise<Project> {
 export async function createProject(data: {
   title: string;
   chapter_count: number;
+  audience: string;
+  purpose: string;
   workspace_id?: string | null;
 }): Promise<Project> {
   return request<Project>('/api/projects', {

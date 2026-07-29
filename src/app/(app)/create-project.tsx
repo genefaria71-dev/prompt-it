@@ -37,6 +37,8 @@ export default function CreateProjectScreen() {
   const insets = useSafeAreaInsets();
 
   const [title, setTitle] = useState('');
+  const [audience, setAudience] = useState('');
+  const [purpose, setPurpose] = useState('');
   const [chapterCount, setChapterCount] = useState('1');
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 
@@ -102,6 +104,8 @@ export default function CreateProjectScreen() {
     try {
       await api.createProject({
         title: title.trim(),
+        audience: audience.trim(),
+        purpose: purpose.trim(),
         chapter_count: parseInt(chapterCount, 10),
         workspace_id: selectedWorkspaceId,
       });
@@ -160,6 +164,34 @@ export default function CreateProjectScreen() {
               editable={!submitting}
             />
             {titleError ? <Text style={styles.fieldError}>{titleError}</Text> : null}
+          </View>
+
+          {/* ── AUDIENCE ─────────────────────────────────────────── */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Target Audience</Text>
+            <TextInput
+              style={styles.input}
+              value={audience}
+              onChangeText={setAudience}
+              placeholder="e.g. Developers, Marketers, General"
+              placeholderTextColor={C.muted + '80'}
+              autoCapitalize="sentences"
+              editable={!submitting}
+            />
+          </View>
+
+          {/* ── PURPOSE ──────────────────────────────────────────── */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Purpose</Text>
+            <TextInput
+              style={styles.input}
+              value={purpose}
+              onChangeText={setPurpose}
+              placeholder="e.g. Generate blog posts, documentation"
+              placeholderTextColor={C.muted + '80'}
+              autoCapitalize="sentences"
+              editable={!submitting}
+            />
           </View>
 
           {/* ── CHAPTER COUNT ───────────────────────────────────── */}
