@@ -4,6 +4,29 @@ const BASE_URL = 'https://prompt-it-web.onrender.com';
 const TOKEN_KEY = 'prompt_it_token';
 const CSRF_KEY = 'prompt_it_csrf_token';
 
+// ── API Key storage ───────────────────────────────────────────────────
+
+const API_KEY_PREFIX = 'promptit_apikey_';
+const ACTIVE_PROVIDER_KEY = 'promptit_active_provider';
+
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'groq';
+
+export async function setApiKey(provider: string, key: string): Promise<void> {
+  await AsyncStorage.setItem(`${API_KEY_PREFIX}${provider}`, key);
+}
+
+export async function getApiKey(provider: string): Promise<string | null> {
+  return AsyncStorage.getItem(`${API_KEY_PREFIX}${provider}`);
+}
+
+export async function getActiveProvider(): Promise<string> {
+  return (await AsyncStorage.getItem(ACTIVE_PROVIDER_KEY)) || 'openai';
+}
+
+export async function setActiveProvider(provider: string): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_PROVIDER_KEY, provider);
+}
+
 // ── Types ───────────────────────────────────────────────────────────
 
 export interface User {
@@ -199,8 +222,18 @@ export async function createProject(data: {
 }
 
 export async function startProject(id: string): Promise<{ status: string }> {
+  const provider = await getActiveProvider();
+  const apiKey = await getApiKey(provider);
+
+  const body: Record<string, unknown> = {};
+  if (apiKey) {
+    body.api_key = apiKey;
+    body.api_provider = provider;
+  }
+
   return request<{ status: string }>(`/api/projects/${id}/start`, {
     method: 'POST',
+    body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
   });
 }
 

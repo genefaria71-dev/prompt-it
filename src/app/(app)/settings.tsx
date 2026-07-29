@@ -61,6 +61,15 @@ function planBorderColor(plan: string): string {
   return map[plan?.toLowerCase()] ?? C.muted + '40';
 }
 
+// ── AI Providers ────────────────────────────────────────────────────
+
+const AI_PROVIDERS: { value: string; label: string }[] = [
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'google', label: 'Google Gemini' },
+  { value: 'groq', label: 'Groq' },
+];
+
 // ── Settings Screen ──────────────────────────────────────────────────
 
 export default function SettingsScreen() {
@@ -97,6 +106,38 @@ export default function SettingsScreen() {
   const [managing, setManaging] = useState(false);
   const [upgradeError, setUpgradeError] = useState('');
   const [manageError, setManageError] = useState('');
+
+  // ── Section 5: AI Providers ──────────────────────────────────────
+  const [activeProvider, setActiveProviderState] = useState('openai');
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [savedKeys, setSavedKeys] = useState<Record<string, string>>({});
+  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [editingProvider, setEditingProvider] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState(false);
+  const [keyError, setKeyError] = useState('');
+  const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+
+  // ── Load saved provider & keys on mount ───────────────────────────
+
+  useEffect(() => {
+    async function loadKeys() {
+      const provider = await api.getActiveProvider();
+      setActiveProviderState(provider);
+
+      const keys: Record<string, string> = {};
+      for (const p of AI_PROVIDERS) {
+        const key = await api.getApiKey(p.value);
+        if (key) keys[p.value] = key;
+      }
+      setSavedKeys(keys);
+
+      // If the active provider has a saved key, pre-fill input
+      if (keys[provider]) {
+        setApiKeyInput(keys[provider]);
+      }
+    }
+    loadKeys();
+  }, []);
 
   // ── Fetchers ────────────────────────────────────────────────────
 
@@ -218,6 +259,53 @@ export default function SettingsScreen() {
     setLoggingOut(true);
     await logout();
     setLoggingOut(false);
+  }
+
+  // ── AI Provider handlers ─────────────────────────────────────────
+
+  async function handleProviderChange(provider: string) {
+    setActiveProviderState(provider);
+    await api.setActiveProvider(provider);
+    setShowProviderDropdown(false);
+    setKeyError('');
+
+    // Load saved key for this provider
+    if (savedKeys[provider]) {
+      setApiKeyInput(savedKeys[provider]);
+      setEditingProvider(null);
+    } else {
+      setApiKeyInput('');
+      setEditingProvider(provider);
+    }
+  }
+
+  function handleEditKey() {
+    setEditingProvider(activeProvider);
+    setApiKeyInput(savedKeys[activeProvider] || '');
+    setKeyError('');
+  }
+
+  async function handleSaveKey() {
+    const trimmed = apiKeyInput.trim();
+    if (!trimmed) {
+      setKeyError('API key cannot be empty.');
+      return;
+    }
+    setSavingKey(true);
+    setKeyError('');
+    try {
+      await api.setApiKey(activeProvider, trimmed);
+      setSavedKeys((prev) => ({ ...prev, [activeProvider]: trimmed }));
+      setEditingProvider(null);
+    } catch (e: unknown) {
+      setKeyError(e instanceof Error ? e.message : 'Failed to save key.');
+    } finally {
+      setSavingKey(false);
+    }
+  }
+
+  function toggleKeyVisibility(provider: string) {
+    setShowKeys((prev) => ({ ...prev, [provider]: !prev[provider] }));
   }
 
   // ── Derived data ────────────────────────────────────────────────
@@ -595,7 +683,125 @@ export default function SettingsScreen() {
         </View>
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION 5: SIGN OUT
+            SECTION 5: AI PROVIDERS
+            ═══════════════════════════════════════════════════════════ */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>AI Providers</Text>
+
+          {/* Provider selector */}
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Provider</Text>
+            <TouchableOpacity
+              style={styles.providerSelector}
+              onPress={() => setShowProviderDropdown(!showProviderDropdown)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.providerSelectorText}>
+                {AI_PROVIDERS.find((p) => p.value === activeProvider)?.label ??
+                  'OpenAI'}
+              </Text>
+              <Text style={styles.providerArrow}>▾</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Dropdown options */}
+          {showProviderDropdown && (
+            <View style={styles.providerDropdown}>
+              {AI_PROVIDERS.map((p) => (
+                <TouchableOpacity
+                  key={p.value}
+                  style={[
+                    styles.providerOption,
+                    activeProvider === p.value && styles.providerOptionActive,
+                  ]}
+                  onPress={() => handleProviderChange(p.value)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.providerOptionText,
+                      activeProvider === p.value &&
+                        styles.providerOptionTextActive,
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* API Key input */}
+          <View style={[styles.infoRow, { marginTop: 14 }]}>
+            <Text style={styles.label}>API Key</Text>
+            {editingProvider === activeProvider ||
+            !savedKeys[activeProvider] ? (
+              <View style={styles.keyInputRow}>
+                <TextInput
+                  style={styles.keyInput}
+                  value={apiKeyInput}
+                  onChangeText={setApiKeyInput}
+                  placeholder="sk-..."
+                  placeholderTextColor={C.muted}
+                  secureTextEntry={!showKeys[activeProvider]}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={styles.keyToggle}
+                  onPress={() => toggleKeyVisibility(activeProvider)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.keyToggleText}>
+                    {showKeys[activeProvider] ? '🙈' : '👁'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.valueRow}
+                onPress={handleEditKey}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.maskedKey}>
+                  {'••••••••' + savedKeys[activeProvider].slice(-8)}
+                </Text>
+                <Text style={styles.editHint}>Edit</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Save button */}
+          <TouchableOpacity
+            style={[
+              styles.saveKeyBtn,
+              (savingKey || !apiKeyInput.trim()) && styles.buttonDisabled,
+            ]}
+            onPress={handleSaveKey}
+            disabled={savingKey || !apiKeyInput.trim()}
+            activeOpacity={0.7}
+          >
+            {savingKey ? (
+              <ActivityIndicator size="small" color={C.cyan} />
+            ) : (
+              <Text style={styles.saveKeyBtnText}>
+                {savedKeys[activeProvider] ? 'Update Key' : 'Save Key'}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          {keyError ? (
+            <Text style={styles.inlineError}>{keyError}</Text>
+          ) : null}
+
+          <Text style={styles.keyNote}>
+            Your key is stored locally and sent with each production request.
+            The backend will use it if supported.
+          </Text>
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════════
+            SECTION 6: SIGN OUT
             ═══════════════════════════════════════════════════════════ */}
         <TouchableOpacity
           style={styles.logoutBtn}
@@ -986,6 +1192,119 @@ const styles = StyleSheet.create({
     color: C.muted,
     fontSize: 14,
     fontWeight: '500',
+  },
+
+  // ── AI Providers ──────────────────────────────────────────────────
+
+  // Provider selector (dropdown trigger)
+  providerSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: C.cardAlt,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 8,
+  },
+  providerSelectorText: {
+    color: C.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  providerArrow: {
+    color: C.muted,
+    fontSize: 12,
+  },
+
+  // Dropdown
+  providerDropdown: {
+    backgroundColor: C.cardAlt,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    marginTop: 6,
+    overflow: 'hidden',
+  },
+  providerOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+  },
+  providerOptionActive: {
+    backgroundColor: C.cyan + '12',
+  },
+  providerOptionText: {
+    color: C.muted,
+    fontSize: 14,
+  },
+  providerOptionTextActive: {
+    color: C.cyan,
+    fontWeight: '600',
+  },
+
+  // Key input
+  keyInputRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    justifyContent: 'flex-end',
+  },
+  keyInput: {
+    flex: 1,
+    backgroundColor: C.cardAlt,
+    color: C.text,
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: C.border,
+    fontFamily: 'monospace',
+    maxWidth: 180,
+  },
+  keyToggle: {
+    padding: 6,
+    borderRadius: 6,
+  },
+  keyToggleText: {
+    fontSize: 16,
+  },
+
+  // Masked key display
+  maskedKey: {
+    fontSize: 14,
+    color: C.text,
+    fontWeight: '500',
+    fontFamily: 'monospace',
+  },
+
+  // Save button
+  saveKeyBtn: {
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: C.purple + '18',
+    borderWidth: 1,
+    borderColor: C.purple + '40',
+    alignItems: 'center',
+  },
+  saveKeyBtnText: {
+    color: C.purple,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Key note
+  keyNote: {
+    color: C.muted,
+    fontSize: 11,
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 
   // Bottom nav
