@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Linking,
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import * as api from '../../../services/api';
 import type { Project, ProcessingTask, AgentRun } from '../../../services/api';
 
@@ -238,35 +239,64 @@ export default function ProjectDetailScreen() {
 
   // ── Export handlers ───────────────────────────────────────────────
 
-  const [exportingDocx, setExportingDocx] = useState(false);
-  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null); // 'docx' | 'pdf' | null
   const [exportError, setExportError] = useState('');
 
-  async function handleExportDocx() {
+  async function handleExport(format: 'docx' | 'pdf') {
+    if (!id || !project) return;
     setExportError('');
-    setExportingDocx(true);
+    setExporting(format);
     try {
       const token = await api.getToken();
-      const url = `${api.BASE_URL}/api/projects/${id}/export/docx?token=${encodeURIComponent(token ?? '')}`;
-      await Linking.openURL(url);
-    } catch (e: unknown) {
-      setExportError(e instanceof Error ? e.message : 'Failed to export DOCX.');
-    } finally {
-      setExportingDocx(false);
-    }
-  }
+      const response = await fetch(
+        `${api.BASE_URL}/api/projects/${id}/export/${format}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(
+          `Export failed (${response.status})${errorText ? ': ' + errorText : ''}`,
+        );
+      }
 
-  async function handleExportPdf() {
-    setExportError('');
-    setExportingPdf(true);
-    try {
-      const token = await api.getToken();
-      const url = `${api.BASE_URL}/api/projects/${id}/export/pdf?token=${encodeURIComponent(token ?? '')}`;
-      await Linking.openURL(url);
+      const blob = await response.blob();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.includes(',') ? result.split(',')[1] : result;
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read downloaded file'));
+        reader.readAsDataURL(blob);
+      });
+
+      const extension = format;
+      const safeName = (project.title || 'export').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileUri = `${FileSystem.cacheDirectory}${safeName}.${extension}`;
+      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (isSharingAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType:
+            format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          dialogTitle: `Share ${format.toUpperCase()}`,
+        });
+      } else {
+        // Fallback: let the user know the file was saved
+        setExportError(
+          `File saved to ${fileUri}. Sharing is not available on this device.`,
+        );
+      }
     } catch (e: unknown) {
-      setExportError(e instanceof Error ? e.message : 'Failed to export PDF.');
+      setExportError(
+        e instanceof Error ? e.message : `Failed to export ${format.toUpperCase()}.`,
+      );
     } finally {
-      setExportingPdf(false);
+      setExporting(null);
     }
   }
 
@@ -588,34 +618,34 @@ export default function ProjectDetailScreen() {
             <Text style={styles.sectionTitle}>Exports</Text>
 
             <TouchableOpacity
-              style={[styles.exportButton, exportingDocx && styles.exportButtonDisabled]}
-              onPress={handleExportDocx}
+              style={[styles.exportButton, exporting === 'docx' && styles.exportButtonDisabled]}
+              onPress={() => handleExport('docx')}
               activeOpacity={0.7}
-              disabled={exportingDocx}
+              disabled={exporting !== null}
             >
-              {exportingDocx ? (
+              {exporting === 'docx' ? (
                 <ActivityIndicator size="small" color={C.cyan} />
               ) : (
                 <Text style={styles.exportIcon}>📄</Text>
               )}
               <Text style={styles.exportText}>
-                {exportingDocx ? 'Downloading…' : 'Download DOCX'}
+                {exporting === 'docx' ? 'Downloading…' : 'Download DOCX'}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.exportButton, exportingPdf && styles.exportButtonDisabled]}
-              onPress={handleExportPdf}
+              style={[styles.exportButton, exporting === 'pdf' && styles.exportButtonDisabled]}
+              onPress={() => handleExport('pdf')}
               activeOpacity={0.7}
-              disabled={exportingPdf}
+              disabled={exporting !== null}
             >
-              {exportingPdf ? (
+              {exporting === 'pdf' ? (
                 <ActivityIndicator size="small" color={C.cyan} />
               ) : (
                 <Text style={styles.exportIcon}>📑</Text>
               )}
               <Text style={styles.exportText}>
-                {exportingPdf ? 'Downloading…' : 'Download PDF'}
+                {exporting === 'pdf' ? 'Downloading…' : 'Download PDF'}
               </Text>
             </TouchableOpacity>
 
