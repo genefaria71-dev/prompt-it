@@ -243,7 +243,7 @@ export default function ProjectDetailScreen() {
     setExportingDocx(true);
     try {
       const token = await api.getToken();
-      const url = `https://prompt-it-web.onrender.com/api/projects/${id}/export/docx?token=${encodeURIComponent(token ?? '')}`;
+      const url = `${api.BASE_URL}/api/projects/${id}/export/docx?token=${encodeURIComponent(token ?? '')}`;
       await Linking.openURL(url);
     } catch (e: unknown) {
       setExportError(e instanceof Error ? e.message : 'Failed to export DOCX.');
@@ -257,7 +257,7 @@ export default function ProjectDetailScreen() {
     setExportingPdf(true);
     try {
       const token = await api.getToken();
-      const url = `https://prompt-it-web.onrender.com/api/projects/${id}/export/pdf?token=${encodeURIComponent(token ?? '')}`;
+      const url = `${api.BASE_URL}/api/projects/${id}/export/pdf?token=${encodeURIComponent(token ?? '')}`;
       await Linking.openURL(url);
     } catch (e: unknown) {
       setExportError(e instanceof Error ? e.message : 'Failed to export PDF.');
