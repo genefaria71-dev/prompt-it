@@ -11,12 +11,10 @@
         "EXPO_PUBLIC_API_URL": "https://prompt-it-web.onrender.com"
       },
       "ios": {
-        "simulator": true,
-        "deploymentTarget": "15.0"
+        "simulator": true
       },
       "android": {
-        "buildType": "apk",
-        "minSdkVersion": 34
+        "buildType": "apk"
       }
     },
     "preview": {
@@ -24,12 +22,9 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://prompt-it-web.onrender.com"
       },
-      "ios": {
-        "deploymentTarget": "15.0"
-      },
+      "ios": {},
       "android": {
-        "buildType": "apk",
-        "minSdkVersion": 34
+        "buildType": "apk"
       }
     },
     "production": {
@@ -40,12 +35,10 @@
         "EXPO_PUBLIC_API_URL": "https://prompt-it-web.onrender.com"
       },
       "ios": {
-        "deploymentTarget": "15.0",
         "autoIncrement": "buildNumber"
       },
       "android": {
         "buildType": "app-bundle",
-        "minSdkVersion": 34,
         "autoIncrement": "versionCode"
       }
     }
