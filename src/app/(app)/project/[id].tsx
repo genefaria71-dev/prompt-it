@@ -91,6 +91,7 @@ export default function ProjectDetailScreen() {
   const [starting, setStarting] = useState(false);
   const [polling, setPolling] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
 
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
@@ -163,6 +164,7 @@ export default function ProjectDetailScreen() {
 
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -178,7 +180,9 @@ export default function ProjectDetailScreen() {
 
     pollingRef.current = setInterval(async () => {
       try {
-        const data = await api.getProject(id!);
+        if (!id) { stopPolling(); return; }
+        const data = await api.getProject(id);
+        if (!mountedRef.current) return;
         setProject(data);
 
         // Stop polling when terminal state reached

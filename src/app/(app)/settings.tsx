@@ -237,9 +237,15 @@ export default function SettingsScreen() {
 
   async function handleUpgrade() {
     setUpgrading(true);
-    // Open Stripe payment link directly
-    await Linking.openURL('https://buy.stripe.com/6oU3cv8AUeRsb7aA8CU6AM00');
-    setUpgrading(false);
+    try {
+      const { url } = await api.startCheckout('pro');
+      await Linking.openURL(url);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to start checkout.';
+      setManageError(msg);
+    } finally {
+      setUpgrading(false);
+    }
   }
 
   async function handleManageBilling() {
