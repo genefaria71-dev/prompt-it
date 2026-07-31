@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'https://prompt-it-web.onrender.com';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://prompt-it-web.onrender.com';
+export { BASE_URL };
 const TOKEN_KEY = 'prompt_it_token';
 const CSRF_KEY = 'prompt_it_csrf_token';
 
