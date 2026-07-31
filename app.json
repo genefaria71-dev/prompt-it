@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "promptit",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "backgroundColor": "#080a0f",
     "primaryColor": "#43f5d5",
     "splash": {
@@ -33,7 +33,7 @@
       },
       "package": "com.promptit.app",
       "versionCode": 1,
-      "minSdkVersion": 34
+      "minSdkVersion": 24
     },
     "web": {
       "bundler": "metro",
